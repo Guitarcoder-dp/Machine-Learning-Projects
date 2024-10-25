@@ -1,0 +1,110 @@
+import os
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import classification_report
+from PIL import Image
+import seaborn as sns
+
+def preprocess_image(image):
+    # Open the image and resize it
+    img = Image.open(image)
+    img = img.resize((32, 32))
+    
+    # Convert the image to a numpy array and return it
+    return np.array(img)
+    
+# Load the leaf images from the two folders
+he_images = []
+de_images = []
+
+p='C:\\Users\\INTEL\\OneDrive - Amrita Vishwa Vidyapeetham\\Documents\\he'
+q='C:\\Users\\INTEL\\OneDrive - Amrita Vishwa Vidyapeetham\\Documents\\de'
+
+for file in os.listdir(p):
+    if file.endswith(".JPG"):
+        he_images.append(os.path.join(p, file))
+
+for file in os.listdir(q):
+    if file.endswith(".JPG"):
+        de_images.append(os.path.join(q, file))
+he_data = []
+de_data = []
+
+for image in he_images:
+    image_data = preprocess_image(image)
+    he_data.append(image_data)
+
+for image in de_images:
+    image_data = preprocess_image(image)
+    de_data.append(image_data)
+X = np.concatenate((he_data, de_data))
+y = np.concatenate((np.zeros(len(he_data)), np.ones(len(de_data))))
+
+
+
+
+# Split the data into training and test sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,random_state=10)
+
+# Standardize the data
+X_train = X_train.reshape(X_train.shape[0], -1)
+X_test = X_test.reshape(X_test.shape[0], -1)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train a support vector machine (SVM) classifier on the training data
+clf = SVC()
+clf.fit(X_train, y_train)
+
+# Make predictions on the test set and evaluate the model's performance
+y_pred = clf.predict(X_test)
+
+
+from sklearn.metrics import confusion_matrix
+
+# Make predictions on the test set
+y_pred = clf.predict(X_test)
+
+# Calculate the confusion matrix
+confusion_matrix = confusion_matrix(y_test, y_pred)
+print("Confusion Matrix: \n\n",confusion_matrix)
+print("\nClassification Report: \n\n",classification_report(y_test, y_pred))
+
+# Create the output folders if they do not exist
+# if not os.path.exists("neem"):
+#     os.mkdir("neem")
+# if not os.path.exists("mint"):
+#     os.mkdir("mint")
+
+# # Iterate through the test set and save the images in the corresponding folder
+# for i in range(len(X_test)):
+#     img = Image.fromarray(X_test[i].reshape(32, 32, 3).astype('uint8'))
+#     if y_pred[i] == 0:
+#         img.save("neem/img_{}.jpg".format(i))
+#     else:
+#         img.save("mint/img_{}.jpg".format(i))
+
+
+# Create the output folders if they do not exist
+if not os.path.exists("SVM_neem"):
+    os.mkdir("SVM_neem")
+if not os.path.exists("SVM_mint"):
+    os.mkdir("SVM_mint")
+
+
+# Iterate through the test set and copy the original images to the corresponding folder based on the predicted labels
+import shutil
+for i in range(len(X_test)):
+    if y_pred[i] == 0:
+        shutil.copy2(neem_images[i], os.path.join("SVM_neem", os.path.basename(neem_images[i])))
+    else:
+        shutil.copy2(mint_images[i], os.path.join("SVM_mint", os.path.basename(mint_images[i])))
+
+
+from sklearn.metrics import confusion_matrix
+import seaborn as sns
+sns.heatmap(confusion_matrix(y_test, y_pred),xticklabels=["Neem","Mint"], yticklabels=["Neem","Mint"], annot=True,fmt='.5g')
